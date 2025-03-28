@@ -1,0 +1,18 @@
+{
+  "name": "meu-bot-whatsapp",
+  "version": "1.0.0",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-packager . MeuBotWhatsApp --platform=win32 --arch=x64 --out=dist/"
+  },
+  "dependencies": {
+    "node-notifier": "^10.0.1",
+    "qrcode": "^1.5.4",
+    "whatsapp-web.js": "^1.26.0"
+  },
+  "devDependencies": {
+    "electron": "^32.2.7",
+    "electron-packager": "^17.1.2"
+  }
+}
