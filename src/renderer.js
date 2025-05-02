@@ -25,3 +25,9 @@ ipcRenderer.on('error', (event, message) => {
 ipcRenderer.on('session-cleared', () => {
     alert('Dados da sessão foram limpos. Iniciando uma nova sessão...');
 });
+
+// Atualiza o número de tentativas de reconexão
+ipcRenderer.on('reconnect-attempts', (event, attempts) => {
+    const reconnectAttemptsElement = document.getElementById('reconnect-attempts');
+    reconnectAttemptsElement.innerText = `Tentativas de reconexão: ${attempts}`;
+});

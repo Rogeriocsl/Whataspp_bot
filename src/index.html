@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,53 +15,77 @@
             margin: 0;
             font-family: Arial, sans-serif;
         }
+
         #loading {
             display: flex;
             justify-content: center;
             align-items: center;
             font-size: 24px;
             font-weight: bold;
-            flex-direction: column; /* Para empilhar o texto e o spinner */
+            flex-direction: column;
+            /* Para empilhar o texto e o spinner */
         }
+
         #botMessage {
-            display: none; /* Esconde inicialmente */
+            display: none;
+            /* Esconde inicialmente */
             text-align: center;
             margin-top: 20px;
         }
+
         #qr-code {
             text-align: center;
             margin-top: 20px;
         }
+
         #qr-code img {
-            max-width: 100%; /* Garante que o QR code não exceda a largura da tela */
+            max-width: 100%;
+            /* Garante que o QR code não exceda a largura da tela */
             height: auto;
         }
+
         /* Estilos do Spinner */
         .spinner {
-            border: 8px solid #f3f3f3; /* Cor de fundo do spinner */
-            border-top: 8px solid #3498db; /* Cor da parte de cima do spinner */
+            border: 8px solid #f3f3f3;
+            /* Cor de fundo do spinner */
+            border-top: 8px solid #3498db;
+            /* Cor da parte de cima do spinner */
             border-radius: 50%;
-            width: 50px; /* Tamanho do spinner */
-            height: 50px; /* Tamanho do spinner */
-            animation: spin 2s linear infinite; /* Animação do spinner */
+            width: 50px;
+            /* Tamanho do spinner */
+            height: 50px;
+            /* Tamanho do spinner */
+            animation: spin 2s linear infinite;
+            /* Animação do spinner */
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
+
 <body>
     <div id="loading">
         Carregando QR Code...
         <div class="spinner"></div> <!-- Spinner -->
     </div>
+
+
     <div id="botMessage">
         <img src="assets/robot-image.png" alt="Bot Funcionando" width="300"><br>
         <h1>Bot Funcionando!</h1>
     </div>
     <div id="qr-code"></div>
+    <div id="reconnect-attempts" style="font-size: 18px; color: #f39c12; font-weight: bold; margin-top: 20px;">
+        Tentativas de reconexão: 0
+    </div>
     <script>
         const { ipcRenderer } = require('electron');
 
@@ -91,4 +116,5 @@
         });
     </script>
 </body>
+
 </html>

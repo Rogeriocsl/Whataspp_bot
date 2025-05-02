@@ -52,6 +52,7 @@ client.on('qr', (qr) => {
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
+// Função para reiniciar o cliente após falhas sucessivas
 const restartClient = () => {
     reconnectAttempts++;
     if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
@@ -62,9 +63,11 @@ const restartClient = () => {
         BrowserWindow.getAllWindows()[0].webContents.send('session-cleared'); // Envia sinal para front-end
     } else {
         console.log(`Tentativa ${reconnectAttempts} de reconexão falhou.`);
+        BrowserWindow.getAllWindows()[0].webContents.send('reconnect-attempts', reconnectAttempts); // Envia o número de tentativas
     }
 };
 
+// Evento de falha de autenticação
 client.on('auth_failure', () => {
     console.log('Falha na autenticação, tentando reconectar...');
     restartClient();
@@ -75,6 +78,7 @@ client.on('authenticated', () => {
     console.log('Cliente autenticado');
     BrowserWindow.getAllWindows()[0].webContents.send('authenticated');
 });
+
 
 const userStates = {};
 
