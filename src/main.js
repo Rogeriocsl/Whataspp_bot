@@ -48,7 +48,30 @@ client.on('qr', (qr) => {
     });
 });
 
+// Tentar reconectar se houver falha
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
+const restartClient = () => {
+    reconnectAttempts++;
+    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+        console.log('Tentativas de reconexão excedidas. Limpando dados e reiniciando a sessão...');
+        LocalAuth.removeData(); // Limpa os dados da sessão
+        reconnectAttempts = 0; // Reseta as tentativas
+        client.initialize(); // Inicializa uma nova sessão
+        BrowserWindow.getAllWindows()[0].webContents.send('session-cleared'); // Envia sinal para front-end
+    } else {
+        console.log(`Tentativa ${reconnectAttempts} de reconexão falhou.`);
+    }
+};
+
+client.on('auth_failure', () => {
+    console.log('Falha na autenticação, tentando reconectar...');
+    restartClient();
+});
+
 client.on('authenticated', () => {
+    reconnectAttempts = 0; // Reseta tentativas após sucesso
     console.log('Cliente autenticado');
     BrowserWindow.getAllWindows()[0].webContents.send('authenticated');
 });
@@ -74,22 +97,20 @@ const showMainMenu = async (chatId) => {
 // Função para verificar horário comercial
 const isWithinBusinessHours = () => {
     const now = new Date();
-    const currentDay = now.getDay(); // Retorna o dia da semana (0=Domingo, 1=Segunda, ..., 6=Sábado)
+    const currentDay = now.getDay();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
 
-    // Horários de funcionamento
     const workHours = {
         weekdays: [
-            { start: { hour: 6, minute: 30 }, end: { hour: 11, minute: 0 } }, // Manhã
-            { start: { hour: 13, minute: 0 }, end: { hour: 16, minute: 0 } }, // Tarde
+            { start: { hour: 6, minute: 30 }, end: { hour: 11, minute: 0 } },
+            { start: { hour: 13, minute: 0 }, end: { hour: 16, minute: 0 } },
         ],
         saturday: [
-            { start: { hour: 6, minute: 30 }, end: { hour: 11, minute: 0 } }, // Sábado
+            { start: { hour: 6, minute: 30 }, end: { hour: 11, minute: 0 } },
         ],
     };
 
-    // Segunda a sexta-feira (dias 1 a 5)
     if (currentDay >= 1 && currentDay <= 5) {
         return workHours.weekdays.some(period => {
             const startTime = period.start;
@@ -100,7 +121,6 @@ const isWithinBusinessHours = () => {
         });
     }
 
-    // Sábado (dia 6)
     if (currentDay === 6) {
         return workHours.saturday.some(period => {
             const startTime = period.start;
@@ -111,7 +131,6 @@ const isWithinBusinessHours = () => {
         });
     }
 
-    // Fora do horário comercial
     return false;
 };
 
@@ -122,10 +141,9 @@ client.on('message', async (message) => {
 
         // Ignorar mensagens de grupos
         if (message.from.includes('@g.us')) {
-            return; // Ignora mensagens de grupos
+            return;
         }
 
-        // Verifica se está fora do horário comercial
         if (!isWithinBusinessHours()) {
             console.log('Fora do horário comercial, respondendo com mensagem apropriada.');
             const outOfHoursMessage = `🔔 *Atendimento Fora do Horário Comercial*\n` +
@@ -136,32 +154,27 @@ client.on('message', async (message) => {
                 `• *Sábado:* das *06:30 às 11:00*\n\n` +
                 `📩 Deixe sua mensagem, e responderemos assim que possível durante o nosso horário de atendimento. Agradecemos pela sua compreensão! 🙏`;
             await client.sendMessage(message.from, outOfHoursMessage);
-            return; // Não processa mais mensagens se estiver fora do horário
+            return;
         }
 
-        // Verifica o estado do usuário
         const userState = userStates[message.from];
         console.log(`Estado do usuário: ${userState}`);
 
-        // Se o usuário não tem um estado, exibe o menu principal
         if (!userState) {
             console.log('Usuário sem estado, mostrando o menu principal.');
             await showMainMenu(message.from);
             return;
         }
 
-        // Se o usuário está aguardando atendimento, ignora mensagens
         if (userState === 'option') {
             if (message.body === '0') {
                 await showMainMenu(message.from);
-                userStates[message.from] = 'main'; // Retorna ao estado "main"
+                userStates[message.from] = 'main';
             } else {
-                // Ignora qualquer outra mensagem
                 return;
             }
         }
 
-        // Responde a opções específicas
         if (userState === 'main' && ['1', '2', '3', '4', '5'].includes(message.body)) {
             const optionMessages = {
                 '1': 'Você escolheu "Consulta com farmacêutico".',
@@ -177,10 +190,9 @@ client.on('message', async (message) => {
 
             console.log(`Enviando resposta: ${responseMessage}`);
             await client.sendMessage(message.from, responseMessage);
-            userStates[message.from] = 'option'; // Define o estado como "option"
+            userStates[message.from] = 'option';
         }
 
-        // Adicionar notificação ao receber uma mensagem
         notifier.notify({
             title: 'Nova Mensagem',
             message: message.body,
