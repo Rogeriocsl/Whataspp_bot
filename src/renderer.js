@@ -21,13 +21,12 @@ ipcRenderer.on('error', (event, message) => {
     document.body.appendChild(errorMessage); // Exibe a mensagem de erro
 });
 
+// Atualiza as tentativas de reconexão
+ipcRenderer.on('reconnect-attempts', (event, attempts) => {
+    document.getElementById('reconnect-attempts').innerText = `Tentativas de reconexão: ${attempts}`;
+});
+
 // Recebe a confirmação de que os dados da sessão foram limpos
 ipcRenderer.on('session-cleared', () => {
     alert('Dados da sessão foram limpos. Iniciando uma nova sessão...');
-});
-
-// Atualiza o número de tentativas de reconexão
-ipcRenderer.on('reconnect-attempts', (event, attempts) => {
-    const reconnectAttemptsElement = document.getElementById('reconnect-attempts');
-    reconnectAttemptsElement.innerText = `Tentativas de reconexão: ${attempts}`;
 });

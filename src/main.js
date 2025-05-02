@@ -4,8 +4,12 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const notifier = require('node-notifier'); // Para notificações
 
+let reconnectAttempts = 0; // Variável para controlar as tentativas de reconexão
+const MAX_RECONNECT_ATTEMPTS = 3; // Limite de tentativas de reconexão
+
+// Configurações do cliente
 const client = new Client({
-    authStrategy: new LocalAuth(),
+    authStrategy: new LocalAuth(), // LocalAuth salva os dados da sessão
     puppeteer: { args: ['--no-sandbox', '--disable-setuid-sandbox'] }
 });
 
@@ -48,39 +52,41 @@ client.on('qr', (qr) => {
     });
 });
 
-// Tentar reconectar se houver falha
-let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
-
-// Função para reiniciar o cliente após falhas sucessivas
-const restartClient = () => {
+// Função para tentar reconectar na última sessão
+const tryReconnect = () => {
     reconnectAttempts++;
-    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-        console.log('Tentativas de reconexão excedidas. Limpando dados e reiniciando a sessão...');
+    BrowserWindow.getAllWindows()[0].webContents.send('reconnect-attempts', reconnectAttempts); // Envia as tentativas para o frontend
+
+    if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
+        console.log('Tentativas de reconexão falharam. Limpando os dados de autenticação e cache...');
         LocalAuth.removeData(); // Limpa os dados da sessão
         reconnectAttempts = 0; // Reseta as tentativas
-        client.initialize(); // Inicializa uma nova sessão
-        BrowserWindow.getAllWindows()[0].webContents.send('session-cleared'); // Envia sinal para front-end
+        client.initialize(); // Reinicia o processo de autenticação
+        BrowserWindow.getAllWindows()[0].webContents.send('session-cleared'); // Notifica o front-end
     } else {
-        console.log(`Tentativa ${reconnectAttempts} de reconexão falhou.`);
-        BrowserWindow.getAllWindows()[0].webContents.send('reconnect-attempts', reconnectAttempts); // Envia o número de tentativas
+        console.log(`Tentativa ${reconnectAttempts} de reconexão...`);
     }
 };
 
 // Evento de falha de autenticação
 client.on('auth_failure', () => {
     console.log('Falha na autenticação, tentando reconectar...');
-    restartClient();
+    tryReconnect();
 });
 
+// Evento de autenticação bem-sucedida
 client.on('authenticated', () => {
-    reconnectAttempts = 0; // Reseta tentativas após sucesso
+    reconnectAttempts = 0; // Reseta as tentativas após o sucesso da autenticação
     console.log('Cliente autenticado');
     BrowserWindow.getAllWindows()[0].webContents.send('authenticated');
 });
 
-
-const userStates = {};
+// Verifica se a autenticação anterior existe
+client.on('ready', () => {
+    console.log('Cliente pronto');
+    reconnectAttempts = 0; // Resetando as tentativas após a inicialização bem-sucedida
+    BrowserWindow.getAllWindows()[0].webContents.send('authenticated');
+});
 
 // Função para exibir o menu principal
 const showMainMenu = async (chatId) => {
